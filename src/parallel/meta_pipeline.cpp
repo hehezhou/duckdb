@@ -109,6 +109,17 @@ MetaPipeline &MetaPipeline::CreateChildMetaPipeline(Pipeline &current, PhysicalO
 	return child_meta_pipeline;
 }
 
+MetaPipeline &MetaPipeline::CreateChildMetaPipelineWithoutDependency(Pipeline &current, PhysicalOperator &op,
+																	 MetaPipelineType type) {
+	children.push_back(make_shared_ptr<MetaPipeline>(executor, state, &op, type));
+	auto &child_meta_pipeline = *children.back().get();
+	// store the parent
+	child_meta_pipeline.parent = &current;
+	// child meta pipeline is part of the recursive CTE too
+	child_meta_pipeline.recursive_cte = recursive_cte;
+	return child_meta_pipeline;
+}
+
 Pipeline &MetaPipeline::CreatePipeline() {
 	pipelines.emplace_back(make_shared_ptr<Pipeline>(executor));
 	state.SetPipelineSink(*pipelines.back(), sink, next_batch_index++);

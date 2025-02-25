@@ -266,6 +266,19 @@ void ColumnDataCollectionSegment::ReadChunk(idx_t chunk_index, ChunkManagementSt
 	chunk.SetCardinality(chunk_meta.count);
 }
 
+void ColumnDataCollectionSegment::ReadChunkFromChunkMeta(ChunkMetaData &chunk_meta, ChunkManagementState &state, DataChunk &chunk,
+                                            			 const vector<column_t> &column_ids) {
+	D_ASSERT(chunk.ColumnCount() == column_ids.size());
+	D_ASSERT(state.properties != ColumnDataScanProperties::INVALID);
+	allocator->InitializeChunkState(state, chunk_meta);
+	for (idx_t i = 0; i < column_ids.size(); i++) {
+		auto vector_idx = column_ids[i];
+		D_ASSERT(vector_idx < chunk_meta.vector_data.size());
+		ReadVector(state, chunk_meta.vector_data[vector_idx], chunk.data[i]);
+	}
+	chunk.SetCardinality(chunk_meta.count);
+}
+
 idx_t ColumnDataCollectionSegment::ChunkCount() const {
 	return chunk_data.size();
 }

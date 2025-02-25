@@ -1,5 +1,6 @@
 #include "duckdb/execution/operator/join/physical_join.hpp"
 
+#include "duckdb/execution/operator/helper/physical_pipeline_breaker.hpp"
 #include "duckdb/execution/operator/join/physical_hash_join.hpp"
 #include "duckdb/parallel/meta_pipeline.hpp"
 #include "duckdb/parallel/pipeline.hpp"
@@ -57,13 +58,22 @@ void PhysicalJoin::BuildJoinPipelines(Pipeline &current, MetaPipeline &meta_pipe
 		}
 	}
 
+	// NUMATODO : add config
+	bool break_tag = true;
+	if (break_tag) {
+		auto breaker_types = op.children[0]->types;
+		auto breaker_estimated_cardinality = op.children[0]->estimated_cardinality;
+		auto breaker = make_uniq<PhysicalPipelineBreaker>(breaker_types, std::move(op.children[0]), breaker_estimated_cardinality);
+		op.children[0] = std::move(breaker);
+	}
+
 	// continue building the current pipeline on the LHS (probe side)
 	op.children[0]->BuildPipelines(current, meta_pipeline);
 
-	if (last_child_ptr) {
-		// the pointer was set, set up the dependencies
-		meta_pipeline.AddRecursiveDependencies(dependencies, *last_child_ptr);
-	}
+	// if (last_child_ptr) {
+	// 	// the pointer was set, set up the dependencies
+	// 	meta_pipeline.AddRecursiveDependencies(dependencies, *last_child_ptr);
+	// }
 
 	switch (op.type) {
 	case PhysicalOperatorType::POSITIONAL_JOIN:

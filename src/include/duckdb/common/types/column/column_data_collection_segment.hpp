@@ -112,6 +112,8 @@ public:
 	void InitializeChunkState(idx_t chunk_index, ChunkManagementState &state);
 	void ReadChunk(idx_t chunk_index, ChunkManagementState &state, DataChunk &chunk,
 	               const vector<column_t> &column_ids);
+	void ReadChunkFromChunkMeta(ChunkMetaData &chunk_meta, ChunkManagementState &state, DataChunk &chunk,
+								const vector<column_t> &column_ids);
 
 	idx_t ReadVector(ChunkManagementState &state, VectorDataIndex vector_index, Vector &result);
 
