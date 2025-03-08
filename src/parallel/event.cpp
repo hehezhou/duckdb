@@ -86,4 +86,18 @@ void Event::SetTasks(vector<shared_ptr<Task>> tasks) {
 	}
 }
 
+void Event::SetTasksNUMA(vector<shared_ptr<Task>> tasks, idx_t numa_id) {
+	if (numa_id == static_cast<idx_t>(-1)) {
+		SetTasks(tasks);
+		return;
+	}
+	auto &ts = TaskScheduler::GetScheduler(executor.context);
+	D_ASSERT(total_tasks == 0);
+	D_ASSERT(!tasks.empty());
+	this->total_tasks = tasks.size();
+	for (auto &task : tasks) {
+		ts.ScheduleTaskNUMA(executor.GetToken(), std::move(task), numa_id);
+	}
+}
+
 } // namespace duckdb

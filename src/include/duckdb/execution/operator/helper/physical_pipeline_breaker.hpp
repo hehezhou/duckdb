@@ -12,34 +12,10 @@
 
 #include "duckdb/execution/physical_operator.hpp"
 
-#include "concurrentqueue.h"
-#include "duckdb/common/thread.hpp"
-#include "lightweightsemaphore.h"
-
-#include "duckdb/common/types/column/column_data_collection_segment.hpp"
-
 namespace duckdb {
 
+class BreakerConcurrentQueue;
 class ChunkBuffer;
-
-struct ChunkReference {
-	shared_ptr<ChunkBuffer> buffer;
-	ChunkMetaData chunk_meta;
-};
-
-typedef duckdb_moodycamel::ConcurrentQueue<ChunkReference> concurrent_queue_t;
-typedef duckdb_moodycamel::LightweightSemaphore lightweight_semaphore_t;
-
-struct ConcurrentQueue {
-public:
-	void Enqueue(ChunkReference &&chunk_ref);
-	bool TryDequeue(ChunkReference &chunk_ref);
-	void Finalize();
-
-private:
-	concurrent_queue_t q;
-	lightweight_semaphore_t semaphore;
-};
 
 //! PhysicalPipelineBreaker represents a physical operator that is used to break up pipelines
 class PhysicalPipelineBreaker : public PhysicalOperator {
@@ -88,7 +64,7 @@ public:
 	void BuildPipelines(Pipeline &current, MetaPipeline &meta_pipeline) override;
 
 private:
-	unique_ptr<ConcurrentQueue> chunk_queue;
+	unique_ptr<BreakerConcurrentQueue> chunk_queue;
 };
 
 }  // namespace duckdb

@@ -508,7 +508,7 @@ public:
 				                                                          entry_idx_to, sink.op));
 			}
 		}
-		SetTasks(std::move(finalize_tasks));
+		SetTasksNUMA(std::move(finalize_tasks), pipeline->numa_id);
 	}
 	static constexpr const idx_t MINIMUM_ENTRIES_PER_TASK = 131072;
 };
@@ -564,7 +564,7 @@ public:
 				                                                         chunk_idx_to, true, sink.op));
 			}
 		}
-		SetTasks(std::move(finalize_tasks));
+		SetTasksNUMA(std::move(finalize_tasks), pipeline->numa_id);
 	}
 
 	void FinishEvent() override {

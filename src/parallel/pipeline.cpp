@@ -94,7 +94,7 @@ bool Pipeline::GetProgress(ProgressData &progress) {
 void Pipeline::ScheduleSequentialTask(shared_ptr<Event> &event) {
 	vector<shared_ptr<Task>> tasks;
 	tasks.push_back(make_uniq<PipelineTask>(*this, event));
-	event->SetTasks(std::move(tasks));
+	event->SetTasksNUMA(std::move(tasks), numa_id);
 }
 
 bool Pipeline::ScheduleParallel(shared_ptr<Event> &event) {

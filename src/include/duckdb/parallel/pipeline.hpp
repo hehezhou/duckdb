@@ -75,6 +75,9 @@ class Pipeline : public enable_shared_from_this<Pipeline> {
 	friend class MetaPipeline;
 
 public:
+	idx_t numa_id{static_cast<idx_t>(-1)};
+
+public:
 	explicit Pipeline(Executor &execution_context);
 
 	Executor &executor;

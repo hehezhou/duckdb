@@ -7,9 +7,31 @@
 #include "duckdb/common/types/column/column_data_collection.hpp"
 #include "duckdb/common/types/column/column_data_collection_segment.hpp"
 
+#include "concurrentqueue.h"
+#include "lightweightsemaphore.h"
+
 extern int numa_tag;
 
 namespace duckdb {
+
+struct ChunkReference {
+	shared_ptr<ChunkBuffer> buffer;
+	ChunkMetaData chunk_meta;
+};
+
+typedef duckdb_moodycamel::ConcurrentQueue<ChunkReference> concurrent_queue_t;
+typedef duckdb_moodycamel::LightweightSemaphore lightweight_semaphore_t;
+
+struct BreakerConcurrentQueue {
+public:
+	void Enqueue(ChunkReference &&chunk_ref);
+	bool TryDequeue(ChunkReference &chunk_ref);
+	void Finalize();
+
+private:
+	concurrent_queue_t q;
+	lightweight_semaphore_t semaphore;
+};
 
 class ChunkBuffer {
 public:
@@ -47,7 +69,7 @@ private:
 	vector<column_t> column_ids;
 };
 
-void ConcurrentQueue::Enqueue(ChunkReference &&chunk_ref) {
+void BreakerConcurrentQueue::Enqueue(ChunkReference &&chunk_ref) {
 	if (q.enqueue(std::move(chunk_ref))) {
 		semaphore.signal();
 	} else {
@@ -55,19 +77,19 @@ void ConcurrentQueue::Enqueue(ChunkReference &&chunk_ref) {
 	}
 }
 
-bool ConcurrentQueue::TryDequeue(ChunkReference &chunk_ref) {
+bool BreakerConcurrentQueue::TryDequeue(ChunkReference &chunk_ref) {
 	semaphore.wait();
 	return q.try_dequeue(chunk_ref);
 }
 
-void ConcurrentQueue::Finalize() {
+void BreakerConcurrentQueue::Finalize() {
 	semaphore.signal(96);
 }
 
 PhysicalPipelineBreaker::PhysicalPipelineBreaker(vector<LogicalType> types, unique_ptr<PhysicalOperator> child_operator,
                                                  idx_t estimated_cardinality)
     : PhysicalOperator(PhysicalOperatorType::PIPELINE_BREAKER, std::move(types), estimated_cardinality),
-	  chunk_queue(make_uniq<ConcurrentQueue>()) {
+	  chunk_queue(make_uniq<BreakerConcurrentQueue>()) {
 	children.push_back(std::move(child_operator));
 }
 

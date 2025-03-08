@@ -59,7 +59,7 @@ void duckdb_finish_execution(duckdb_task_state state_p) {
 	if (state->execute_count > 0) {
 		// signal to the threads to wake up
 		auto &scheduler = duckdb::TaskScheduler::GetScheduler(state->db);
-		scheduler.Signal(state->execute_count);
+		scheduler.SignalAll(state->execute_count);
 	}
 }
 
